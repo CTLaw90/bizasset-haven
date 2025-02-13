@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,12 +18,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus } from "lucide-react";
+import { Edit, Plus } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Database } from "@/integrations/supabase/types";
+import { format } from "date-fns";
 
 type BrandscriptAnswers = {
   companyName: string;
@@ -54,7 +54,9 @@ type Asset = {
 export const Assets = () => {
   const { businessId } = useParams();
   const [open, setOpen] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [loading, setLoading] = useState(false);
+  const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const [answers, setAnswers] = useState<BrandscriptAnswers>({
     companyName: "",
@@ -85,36 +87,70 @@ export const Assets = () => {
     }
   });
 
+  const handleEditAsset = (asset: Asset) => {
+    setEditingAsset(asset);
+    setAnswers(asset.content.answers);
+    setOpen(true);
+  };
+
   const handleCreateBrandscript = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { data, error: functionError } = await supabase.functions.invoke('generate-brandscript', {
-        body: { answers }
-      });
+      if (editingAsset) {
+        // Update existing brandscript
+        const { error: updateError } = await supabase
+          .from('assets')
+          .update({
+            content: {
+              answers,
+              brandscript: editingAsset.content.brandscript // Keep existing brandscript
+            }
+          })
+          .eq('id', editingAsset.id);
 
-      if (functionError) throw new Error(functionError.message);
-      
-      const { brandscript, error } = data;
-      if (error) throw new Error(error);
+        if (updateError) throw updateError;
+        toast.success('Brandscript updated successfully');
+      } else {
+        // Create new brandscript
+        const { data, error: functionError } = await supabase.functions.invoke('generate-brandscript', {
+          body: { answers }
+        });
 
-      const { error: insertError } = await supabase
-        .from('assets')
-        .insert([{
-          business_id: businessId,
-          type: 'brandscript',
-          status: 'complete',
-          content: {
-            answers,
-            brandscript,
-          },
-        }]);
+        if (functionError) throw new Error(functionError.message);
+        
+        const { brandscript, error } = data;
+        if (error) throw new Error(error);
 
-      if (insertError) throw insertError;
+        const { error: insertError } = await supabase
+          .from('assets')
+          .insert([{
+            business_id: businessId,
+            type: 'brandscript',
+            status: 'complete',
+            content: {
+              answers,
+              brandscript,
+            },
+          }]);
 
-      toast.success('Brandscript created successfully');
+        if (insertError) throw insertError;
+        toast.success('Brandscript created successfully');
+      }
+
       setOpen(false);
+      setEditingAsset(null);
+      setAnswers({
+        companyName: "",
+        productsServices: "",
+        targetAudience: "",
+        mainProblem: "",
+        solution: "",
+        differentiation: "",
+        authority: "",
+        steps: "",
+      });
       queryClient.invalidateQueries({ queryKey: ['assets', businessId] });
     } catch (error: any) {
       toast.error(error.message);
@@ -131,7 +167,22 @@ export const Assets = () => {
     <div className="space-y-8 fade-in">
       <div className="flex items-center justify-between">
         <h1 className="page-header">Assets</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(isOpen) => {
+          setOpen(isOpen);
+          if (!isOpen) {
+            setEditingAsset(null);
+            setAnswers({
+              companyName: "",
+              productsServices: "",
+              targetAudience: "",
+              mainProblem: "",
+              solution: "",
+              differentiation: "",
+              authority: "",
+              steps: "",
+            });
+          }
+        }}>
           <DialogTrigger asChild>
             <Button className="slide-in">
               <Plus className="h-4 w-4 mr-2" />
@@ -140,9 +191,11 @@ export const Assets = () => {
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create Brandscript</DialogTitle>
+              <DialogTitle>
+                {editingAsset ? 'Edit Brandscript' : 'Create Brandscript'}
+              </DialogTitle>
               <DialogDescription>
-                Answer these questions to generate your brandscript.
+                {editingAsset ? 'Edit your answers below.' : 'Answer these questions to generate your brandscript.'}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateBrandscript} className="space-y-4 pr-2">
@@ -219,7 +272,7 @@ export const Assets = () => {
                 />
               </div>
               <Button type="submit" className="w-full mb-4" disabled={loading}>
-                {loading ? 'Generating...' : 'Generate Brandscript'}
+                {loading ? (editingAsset ? 'Updating...' : 'Generating...') : (editingAsset ? 'Update Brandscript' : 'Generate Brandscript')}
               </Button>
             </form>
           </DialogContent>
@@ -247,18 +300,38 @@ export const Assets = () => {
           </Card>
         ) : (
           assets?.map((asset) => (
-            <Card key={asset.id} className="glass-card">
-              <CardHeader>
-                <CardTitle>{asset.type}</CardTitle>
-                <CardDescription>Status: {asset.status}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="prose prose-sm">
-                  <pre className="whitespace-pre-wrap">
-                    {asset.content.brandscript}
-                  </pre>
+            <Card 
+              key={asset.id} 
+              className="glass-card cursor-pointer transition-all hover:shadow-md"
+              onClick={() => setExpandedAssetId(expandedAssetId === asset.id ? null : asset.id)}
+            >
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>{asset.content.answers.companyName}</CardTitle>
+                  <CardDescription>
+                    Created: {format(new Date(asset.created_at), 'MMM d, yyyy')}
+                  </CardDescription>
                 </div>
-              </CardContent>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditAsset(asset);
+                  }}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </CardHeader>
+              {expandedAssetId === asset.id && (
+                <CardContent>
+                  <div className="prose prose-sm">
+                    <pre className="whitespace-pre-wrap">
+                      {asset.content.brandscript}
+                    </pre>
+                  </div>
+                </CardContent>
+              )}
             </Card>
           ))
         )}
