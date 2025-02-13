@@ -9,7 +9,151 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      assets: {
+        Row: {
+          business_id: string | null
+          content: Json
+          created_at: string | null
+          created_by: string | null
+          id: string
+          status: Database["public"]["Enums"]["asset_status"] | null
+          type: Database["public"]["Enums"]["asset_type"]
+          updated_at: string | null
+        }
+        Insert: {
+          business_id?: string | null
+          content?: Json
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["asset_status"] | null
+          type: Database["public"]["Enums"]["asset_type"]
+          updated_at?: string | null
+        }
+        Update: {
+          business_id?: string | null
+          content?: Json
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["asset_status"] | null
+          type?: Database["public"]["Enums"]["asset_type"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          performed_at: string | null
+          performed_by: string | null
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          action: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          performed_at?: string | null
+          performed_by?: string | null
+          record_id: string
+          table_name: string
+        }
+        Update: {
+          action?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          performed_at?: string | null
+          performed_by?: string | null
+          record_id?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
+      businesses: {
+        Row: {
+          additional_info: Json | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          additional_info?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          additional_info?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      files: {
+        Row: {
+          business_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          size: number
+          type: string
+          url: string
+        }
+        Insert: {
+          business_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name: string
+          size: number
+          type: string
+          url: string
+        }
+        Update: {
+          business_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name?: string
+          size?: number
+          type?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "files_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +162,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      asset_status: "draft" | "complete"
+      asset_type: "brandscript" | "content" | "profile"
+      user_role: "manager" | "standard"
     }
     CompositeTypes: {
       [_ in never]: never
