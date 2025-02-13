@@ -735,10 +735,43 @@ export const Assets = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="prose prose-sm max-w-none">
-                        <pre className="whitespace-pre-wrap rounded-lg bg-muted p-4">
-                          {asset.content.personas}
-                        </pre>
+                      <div className="space-y-6">
+                        {asset.content.personas?.split('### Persona').filter(Boolean).map((persona, index) => (
+                          <Card key={index} className="bg-muted/50">
+                            <CardHeader>
+                              <CardTitle className="text-lg">
+                                Persona {index + 1}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              {persona.split('**').map((section, sectionIndex) => {
+                                if (section.includes(':')) {
+                                  const [title, ...content] = section.split(':');
+                                  if (title.includes('Demographics') || 
+                                      title.includes('Context') || 
+                                      title.includes('Profile') || 
+                                      title.includes('Points') || 
+                                      title.includes('Desires') || 
+                                      title.includes('Behavior')) {
+                                    return (
+                                      <div key={sectionIndex} className="space-y-2">
+                                        <h3 className="font-semibold text-primary">{title.trim()}</h3>
+                                        <div className="pl-4 border-l-2 border-primary/20">
+                                          {content.join(':').split('-').filter(Boolean).map((point, pointIndex) => (
+                                            <p key={pointIndex} className="text-sm text-muted-foreground py-1">
+                                              {point.trim()}
+                                            </p>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+                                }
+                                return null;
+                              })}
+                            </CardContent>
+                          </Card>
+                        ))}
                       </div>
                     )}
                   </div>
