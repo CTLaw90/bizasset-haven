@@ -684,11 +684,6 @@ export const Assets = () => {
                     <CardDescription className="text-sm font-medium text-primary mb-1">
                       {asset.type === 'brandscript' ? 'Brandscript' : asset.type === 'business_info' ? 'Business Information' : 'Customer Personas'}
                     </CardDescription>
-                    <CardTitle>
-                      {asset.type === 'brandscript' 
-                        ? (asset.content.answers as BrandscriptAnswers).companyName 
-                        : asset.type === 'business_info' ? 'Business Details' : 'Customer Personas'}
-                    </CardTitle>
                     <CardDescription>
                       Created: {formatDate(asset.created_at)}
                     </CardDescription>
@@ -718,11 +713,13 @@ export const Assets = () => {
                   </DialogHeader>
                   <div className="space-y-4">
                     {asset.type === 'brandscript' ? (
-                      <div className="space-y-4">
-                        <pre className="whitespace-pre-wrap rounded-lg bg-muted/50 p-6 text-sm font-mono">
-                          {asset.content.brandscript}
-                        </pre>
-                      </div>
+                      <Card className="bg-muted/50">
+                        <CardContent className="p-6">
+                          <pre className="whitespace-pre-wrap text-sm font-mono">
+                            {asset.content.brandscript}
+                          </pre>
+                        </CardContent>
+                      </Card>
                     ) : asset.type === 'business_info' ? (
                       <div className="grid gap-4">
                         {Object.entries(asset.content.answers as BusinessInfoAnswers).map(([key, value]) => (
