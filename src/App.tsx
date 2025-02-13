@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Shell } from "./components/layout/Shell";
 import { Auth } from "./pages/Auth";
 import { Businesses } from "./pages/Businesses";
+import { Assets } from "./pages/Assets";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route element={<Shell />}>
             <Route path="/" element={<Businesses />} />
             <Route path="/businesses" element={<Businesses />} />
+            <Route path="/businesses/:businessId/assets" element={<Assets />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
