@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -90,16 +89,13 @@ export const Assets = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-brandscript`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ answers }),
+      const { data, error: functionError } = await supabase.functions.invoke('generate-brandscript', {
+        body: { answers }
       });
 
-      const { brandscript, error } = await response.json();
+      if (functionError) throw new Error(functionError.message);
+      
+      const { brandscript, error } = data;
       if (error) throw new Error(error);
 
       const { error: insertError } = await supabase
