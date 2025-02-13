@@ -16,6 +16,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           id: string
+          referenced_assets: string[] | null
           status: Database["public"]["Enums"]["asset_status"] | null
           type: Database["public"]["Enums"]["asset_type"]
           updated_at: string | null
@@ -26,6 +27,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          referenced_assets?: string[] | null
           status?: Database["public"]["Enums"]["asset_status"] | null
           type: Database["public"]["Enums"]["asset_type"]
           updated_at?: string | null
@@ -36,6 +38,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          referenced_assets?: string[] | null
           status?: Database["public"]["Enums"]["asset_status"] | null
           type?: Database["public"]["Enums"]["asset_type"]
           updated_at?: string | null
@@ -163,7 +166,12 @@ export type Database = {
     }
     Enums: {
       asset_status: "draft" | "complete"
-      asset_type: "brandscript" | "content" | "profile" | "business_info"
+      asset_type:
+        | "brandscript"
+        | "content"
+        | "profile"
+        | "business_info"
+        | "customer_personas"
       user_role: "manager" | "standard"
     }
     CompositeTypes: {

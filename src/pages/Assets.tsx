@@ -25,6 +25,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Database } from "@/integrations/supabase/types";
 import { format } from "date-fns";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type BrandscriptAnswers = {
   companyName: string;
@@ -47,25 +48,34 @@ type BusinessInfoAnswers = {
   address: string;
 };
 
+type CustomerPersonasContent = {
+  personas: string;
+  referenced_assets: string[];
+};
+
 type AssetContent = {
   answers: BrandscriptAnswers | BusinessInfoAnswers;
   brandscript?: string;
+  personas?: string;
+  referenced_assets?: string[];
 };
 
 type Asset = {
   id: string;
   business_id: string;
-  type: 'brandscript' | 'business_info';
+  type: 'brandscript' | 'business_info' | 'customer_personas';
   status: 'draft' | 'complete';
   content: AssetContent;
   created_at: string;
+  referenced_assets?: string[];
 };
 
 export const Assets = () => {
   const { businessId } = useParams();
   const [open, setOpen] = useState(false);
   const [showAssetForm, setShowAssetForm] = useState(false);
-  const [assetType, setAssetType] = useState<'brandscript' | 'business_info'>('brandscript');
+  const [assetType, setAssetType] = useState<'brandscript' | 'business_info' | 'customer_personas'>('brandscript');
+  const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [viewingAsset, setViewingAsset] = useState<Asset | null>(null);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [loading, setLoading] = useState(false);
@@ -252,7 +262,7 @@ export const Assets = () => {
 
           if (insertError) throw insertError;
           toast.success('Brandscript created successfully');
-        } else {
+        } else if (assetType === 'business_info') {
           const { error: insertError } = await supabase
             .from('assets')
             .insert([{
@@ -266,12 +276,45 @@ export const Assets = () => {
 
           if (insertError) throw insertError;
           toast.success('Business Information saved successfully');
+        } else if (assetType === 'customer_personas') {
+          const selectedAssetsData = assets?.assets.filter(a => selectedAssets.includes(a.id)) || [];
+          const brandscript = selectedAssetsData.find(a => a.type === 'brandscript')?.content.brandscript || '';
+          const businessInfo = selectedAssetsData.find(a => a.type === 'business_info')?.content.answers || {};
+
+          const { data: functionData, error: functionError } = await supabase.functions.invoke('generate-personas', {
+            body: { 
+              brandscript,
+              businessInfo
+            }
+          });
+
+          if (functionError) throw new Error(functionError.message);
+          
+          const { personas, error } = functionData;
+          if (error) throw new Error(error);
+
+          const { error: insertError } = await supabase
+            .from('assets')
+            .insert([{
+              business_id: businessId,
+              type: 'customer_personas',
+              status: 'complete',
+              content: {
+                personas,
+                referenced_assets: selectedAssets
+              },
+              referenced_assets: selectedAssets
+            }]);
+
+          if (insertError) throw insertError;
+          toast.success('Customer Personas created successfully');
         }
       }
 
       setOpen(false);
       setShowAssetForm(false);
       setEditingAsset(null);
+      setSelectedAssets([]);
       setAnswers({
         companyName: "",
         productsServices: "",
@@ -353,7 +396,7 @@ export const Assets = () => {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {showAssetForm ? `Create New ${assetType === 'brandscript' ? 'Brandscript' : 'Business Information'}` : 'Create New Asset'}
+                {showAssetForm ? `Create New ${assetType === 'brandscript' ? 'Brandscript' : assetType === 'business_info' ? 'Business Information' : 'Customer Personas'}` : 'Create New Asset'}
               </DialogTitle>
               <DialogDescription>
                 {showAssetForm ? 'Fill in the required information' : 'Select an asset type to create'}
@@ -383,10 +426,57 @@ export const Assets = () => {
                   <span className="text-lg font-semibold">Business Information</span>
                   <span className="text-sm text-muted-foreground">Add your business details</span>
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setAssetType('customer_personas');
+                    setShowAssetForm(true);
+                  }}
+                  className="flex-1 h-24 flex flex-col gap-2"
+                >
+                  <span className="text-lg font-semibold">Customer Personas</span>
+                  <span className="text-sm text-muted-foreground">Generate detailed customer personas</span>
+                </Button>
               </div>
             ) : (
               <form onSubmit={handleCreateAsset} className="space-y-4 pr-2">
-                {assetType === 'business_info' ? (
+                {assetType === 'customer_personas' ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Select Brandscript and Business Information</Label>
+                      <div className="grid gap-4">
+                        {assets?.assets
+                          .filter(a => ['brandscript', 'business_info'].includes(a.type))
+                          .map((asset) => (
+                            <div
+                              key={asset.id}
+                              className="flex items-center space-x-2"
+                            >
+                              <Checkbox
+                                id={asset.id}
+                                checked={selectedAssets.includes(asset.id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedAssets(prev => [...prev, asset.id]);
+                                  } else {
+                                    setSelectedAssets(prev => prev.filter(id => id !== asset.id));
+                                  }
+                                }}
+                              />
+                              <Label htmlFor={asset.id} className="text-sm">
+                                {asset.type === 'brandscript' 
+                                  ? `Brandscript - ${(asset.content.answers as BrandscriptAnswers).companyName}`
+                                  : 'Business Information'}
+                                <span className="text-xs text-muted-foreground ml-2">
+                                  Created: {formatDate(asset.created_at)}
+                                </span>
+                              </Label>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : assetType === 'business_info' ? (
                   <>
                     <div className="space-y-2">
                       <Label htmlFor="services">What are your services?</Label>
@@ -537,7 +627,11 @@ export const Assets = () => {
                   >
                     Back
                   </Button>
-                  <Button type="submit" className="flex-1" disabled={loading}>
+                  <Button 
+                    type="submit" 
+                    className="flex-1" 
+                    disabled={loading || (assetType === 'customer_personas' && selectedAssets.length === 0)}
+                  >
                     {loading ? 'Saving...' : 'Save Asset'}
                   </Button>
                 </div>
@@ -576,12 +670,12 @@ export const Assets = () => {
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
                     <CardDescription className="text-sm font-medium text-primary mb-1">
-                      {asset.type === 'brandscript' ? 'Brandscript' : 'Business Information'}
+                      {asset.type === 'brandscript' ? 'Brandscript' : asset.type === 'business_info' ? 'Business Information' : 'Customer Personas'}
                     </CardDescription>
                     <CardTitle>
                       {asset.type === 'brandscript' 
                         ? (asset.content.answers as BrandscriptAnswers).companyName 
-                        : 'Business Details'}
+                        : asset.type === 'business_info' ? 'Business Details' : 'Customer Personas'}
                     </CardTitle>
                     <CardDescription>
                       Created: {formatDate(asset.created_at)}
@@ -604,7 +698,7 @@ export const Assets = () => {
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>
-                      {viewingAsset?.type === 'brandscript' ? 'Brandscript' : 'Business Information'}
+                      {viewingAsset?.type === 'brandscript' ? 'Brandscript' : viewingAsset?.type === 'business_info' ? 'Business Information' : 'Customer Personas'}
                     </DialogTitle>
                     <DialogDescription>
                       Created: {formatDate(viewingAsset?.created_at)}
@@ -617,7 +711,7 @@ export const Assets = () => {
                           {asset.content.brandscript}
                         </pre>
                       </div>
-                    ) : (
+                    ) : asset.type === 'business_info' ? (
                       <div className="space-y-4">
                         {Object.entries(asset.content.answers as BusinessInfoAnswers).map(([key, value]) => (
                           <div key={key} className="space-y-2">
@@ -627,6 +721,12 @@ export const Assets = () => {
                             <p className="text-sm text-muted-foreground">{value}</p>
                           </div>
                         ))}
+                      </div>
+                    ) : (
+                      <div className="prose prose-sm max-w-none">
+                        <pre className="whitespace-pre-wrap rounded-lg bg-muted p-4">
+                          {asset.content.personas}
+                        </pre>
                       </div>
                     )}
                   </div>
@@ -641,14 +741,19 @@ export const Assets = () => {
                       <Button
                         variant="secondary"
                         onClick={() => {
-                          const content = asset.type === 'brandscript' 
-                            ? asset.content.brandscript!
-                            : Object.entries(asset.content.answers as BusinessInfoAnswers)
-                                .map(([key, value]) => {
-                                  const formattedKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
-                                  return `${formattedKey}:\n${value}`;
-                                })
-                                .join('\n\n');
+                          let content = '';
+                          if (asset.type === 'brandscript') {
+                            content = asset.content.brandscript!;
+                          } else if (asset.type === 'business_info') {
+                            content = Object.entries(asset.content.answers as BusinessInfoAnswers)
+                              .map(([key, value]) => {
+                                const formattedKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+                                return `${formattedKey}:\n${value}`;
+                              })
+                              .join('\n\n');
+                          } else {
+                            content = asset.content.personas!;
+                          }
                           handleCopyToClipboard(content);
                         }}
                       >
