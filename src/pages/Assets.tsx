@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -142,14 +141,14 @@ export const Assets = () => {
               Create Brandscript
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create Brandscript</DialogTitle>
               <DialogDescription>
                 Answer these questions to generate your brandscript.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreateBrandscript} className="space-y-4">
+            <form onSubmit={handleCreateBrandscript} className="space-y-4 pr-2">
               <div className="space-y-2">
                 <Label htmlFor="companyName">What is your company name?</Label>
                 <Input
@@ -222,7 +221,7 @@ export const Assets = () => {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full mb-4" disabled={loading}>
                 {loading ? 'Generating...' : 'Generate Brandscript'}
               </Button>
             </form>
