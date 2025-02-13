@@ -718,60 +718,61 @@ export const Assets = () => {
                   </DialogHeader>
                   <div className="space-y-4">
                     {asset.type === 'brandscript' ? (
-                      <div className="prose prose-sm max-w-none">
-                        <pre className="whitespace-pre-wrap rounded-lg bg-muted p-4">
+                      <div className="space-y-4">
+                        <pre className="whitespace-pre-wrap rounded-lg bg-muted/50 p-6 text-sm font-mono">
                           {asset.content.brandscript}
                         </pre>
                       </div>
                     ) : asset.type === 'business_info' ? (
-                      <div className="space-y-4">
+                      <div className="grid gap-4">
                         {Object.entries(asset.content.answers as BusinessInfoAnswers).map(([key, value]) => (
-                          <div key={key} className="space-y-2">
-                            <h3 className="font-medium">
-                              {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">{value}</p>
-                          </div>
+                          <Card key={key} className="bg-muted/50">
+                            <CardHeader>
+                              <CardTitle className="text-sm">
+                                {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
+                              </CardTitle>
+                              <CardDescription>
+                                {value}
+                              </CardDescription>
+                            </CardHeader>
+                          </Card>
                         ))}
                       </div>
                     ) : (
-                      <div className="space-y-6">
-                        {asset.content.personas?.split('### Persona').filter(Boolean).map((persona, index) => (
-                          <Card key={index} className="bg-muted/50">
-                            <CardHeader>
-                              <CardTitle className="text-lg">
-                                Persona {index + 1}
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                              {persona.split('**').map((section, sectionIndex) => {
-                                if (section.includes(':')) {
-                                  const [title, ...content] = section.split(':');
-                                  if (title.includes('Demographics') || 
-                                      title.includes('Context') || 
-                                      title.includes('Profile') || 
-                                      title.includes('Points') || 
-                                      title.includes('Desires') || 
-                                      title.includes('Behavior')) {
+                      <div className="space-y-4">
+                        {asset.content.personas?.split('### Persona').filter(Boolean).map((persona, index) => {
+                          const sections = persona.match(/\*\*(.*?)\*\*\s*([^*]+)/g) || [];
+                          return (
+                            <Card key={index} className="bg-muted/50">
+                              <CardHeader>
+                                <CardTitle>Persona {index + 1}</CardTitle>
+                              </CardHeader>
+                              <CardContent className="grid gap-4">
+                                {sections.map((section, sectionIndex) => {
+                                  const [title, ...content] = section.replace(/\*\*/g, '').split(':');
+                                  if (content.length > 0) {
                                     return (
                                       <div key={sectionIndex} className="space-y-2">
-                                        <h3 className="font-semibold text-primary">{title.trim()}</h3>
-                                        <div className="pl-4 border-l-2 border-primary/20">
-                                          {content.join(':').split('-').filter(Boolean).map((point, pointIndex) => (
-                                            <p key={pointIndex} className="text-sm text-muted-foreground py-1">
-                                              {point.trim()}
-                                            </p>
-                                          ))}
+                                        <h3 className="text-sm font-medium">{title.trim()}</h3>
+                                        <div className="pl-4 border-l-2 border-primary/20 space-y-2">
+                                          {content.join(':')
+                                            .split('-')
+                                            .filter(Boolean)
+                                            .map((point, pointIndex) => (
+                                              <p key={pointIndex} className="text-sm text-muted-foreground">
+                                                {point.trim()}
+                                              </p>
+                                            ))}
                                         </div>
                                       </div>
                                     );
                                   }
-                                }
-                                return null;
-                              })}
-                            </CardContent>
-                          </Card>
-                        ))}
+                                  return null;
+                                })}
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
