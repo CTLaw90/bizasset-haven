@@ -36,6 +36,20 @@ type BrandscriptAnswers = {
   steps: string;
 };
 
+type AssetContent = {
+  answers: BrandscriptAnswers;
+  brandscript: string;
+};
+
+type Asset = {
+  id: string;
+  business_id: string;
+  type: 'brandscript' | 'content' | 'profile';
+  status: 'draft' | 'complete';
+  content: AssetContent;
+  created_at: string;
+};
+
 export const Assets = () => {
   const { businessId } = useParams();
   const [open, setOpen] = useState(false);
@@ -62,7 +76,7 @@ export const Assets = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data;
+      return data as Asset[];
     }
   });
 
@@ -239,7 +253,7 @@ export const Assets = () => {
               <CardContent>
                 <div className="prose prose-sm">
                   <pre className="whitespace-pre-wrap">
-                    {asset.content.brandscript}
+                    {(asset.content as AssetContent).brandscript}
                   </pre>
                 </div>
               </CardContent>
