@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { Edit, Plus } from "lucide-react";
+import { Copy, Download, Edit, Plus } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -54,9 +54,9 @@ type Asset = {
 export const Assets = () => {
   const { businessId } = useParams();
   const [open, setOpen] = useState(false);
+  const [viewingAsset, setViewingAsset] = useState<Asset | null>(null);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [loading, setLoading] = useState(false);
-  const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const [answers, setAnswers] = useState<BrandscriptAnswers>({
     companyName: "",
@@ -161,6 +161,25 @@ export const Assets = () => {
 
   const handleInputChange = (field: keyof BrandscriptAnswers, value: string) => {
     setAnswers(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleCopyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Copied to clipboard');
+    } catch (error) {
+      toast.error('Failed to copy to clipboard');
+    }
+  };
+
+  const handleDownload = (asset: Asset) => {
+    const element = document.createElement('a');
+    const file = new Blob([asset.content.brandscript], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = `${asset.content.answers.companyName}-brandscript.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
   };
 
   return (
@@ -300,39 +319,65 @@ export const Assets = () => {
           </Card>
         ) : (
           assets?.map((asset) => (
-            <Card 
-              key={asset.id} 
-              className="glass-card cursor-pointer transition-all hover:shadow-md"
-              onClick={() => setExpandedAssetId(expandedAssetId === asset.id ? null : asset.id)}
-            >
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>{asset.content.answers.companyName}</CardTitle>
-                  <CardDescription>
-                    Created: {format(new Date(asset.created_at), 'MMM d, yyyy')}
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEditAsset(asset);
-                  }}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </CardHeader>
-              {expandedAssetId === asset.id && (
-                <CardContent>
-                  <div className="prose prose-sm">
-                    <pre className="whitespace-pre-wrap">
-                      {asset.content.brandscript}
-                    </pre>
+            <div key={asset.id}>
+              <Card 
+                className="glass-card cursor-pointer transition-all hover:shadow-md"
+                onClick={() => setViewingAsset(asset)}
+              >
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>{asset.content.answers.companyName}</CardTitle>
+                    <CardDescription>
+                      Created: {format(new Date(asset.created_at), 'MMM d, yyyy')}
+                    </CardDescription>
                   </div>
-                </CardContent>
-              )}
-            </Card>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditAsset(asset);
+                    }}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </CardHeader>
+              </Card>
+
+              <Dialog open={viewingAsset?.id === asset.id} onOpenChange={(isOpen) => !isOpen && setViewingAsset(null)}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{asset.content.answers.companyName}</DialogTitle>
+                    <DialogDescription>
+                      Created: {format(new Date(asset.created_at), 'MMM d, yyyy')}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="prose prose-sm max-w-none">
+                      <pre className="whitespace-pre-wrap rounded-lg bg-muted p-4">
+                        {asset.content.brandscript}
+                      </pre>
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        variant="secondary"
+                        onClick={() => handleCopyToClipboard(asset.content.brandscript)}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => handleDownload(asset)}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
           ))
         )}
       </div>
