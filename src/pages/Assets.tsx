@@ -410,10 +410,10 @@ export const Assets = () => {
                     setAssetType('brandscript');
                     setShowAssetForm(true);
                   }}
-                  className="h-32 flex flex-col gap-2"
+                  className="h-32 flex flex-col gap-2 p-4 items-center text-center"
                 >
                   <span className="text-lg font-semibold">Brandscript</span>
-                  <span className="text-sm text-muted-foreground">Create a brandscript for your business</span>
+                  <span className="text-sm text-muted-foreground line-clamp-2">Create a brandscript for your business</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -421,10 +421,10 @@ export const Assets = () => {
                     setAssetType('business_info');
                     setShowAssetForm(true);
                   }}
-                  className="h-32 flex flex-col gap-2"
+                  className="h-32 flex flex-col gap-2 p-4 items-center text-center"
                 >
                   <span className="text-lg font-semibold">Business Information</span>
-                  <span className="text-sm text-muted-foreground">Add your business details</span>
+                  <span className="text-sm text-muted-foreground line-clamp-2">Add your business details</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -432,10 +432,10 @@ export const Assets = () => {
                     setAssetType('customer_personas');
                     setShowAssetForm(true);
                   }}
-                  className="h-32 flex flex-col gap-2"
+                  className="h-32 flex flex-col gap-2 p-4 items-center text-center"
                 >
                   <span className="text-lg font-semibold">Customer Personas</span>
-                  <span className="text-sm text-muted-foreground">Generate detailed customer personas</span>
+                  <span className="text-sm text-muted-foreground line-clamp-2">Generate detailed customer personas</span>
                 </Button>
               </div>
             ) : (
