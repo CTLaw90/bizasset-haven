@@ -22,8 +22,9 @@ import { Plus, Search } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 // Temporary type until Supabase generates the proper one
 type Business = {
@@ -40,6 +41,30 @@ export const Businesses = () => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [session, setSession] = useState(null);
+
+  useEffect(() => {
+    // Check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (!session) {
+        navigate('/auth');
+      }
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (!session) {
+        navigate('/auth');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const { data: businesses, isLoading } = useQuery({
     queryKey: ['businesses'],
@@ -63,9 +88,19 @@ export const Businesses = () => {
     const description = formData.get('description') as string;
 
     try {
+      // Get the current user's ID from the session
+      const userId = session?.user?.id;
+      if (!userId) {
+        throw new Error('You must be logged in to create a business');
+      }
+
       const { error } = await supabase
         .from('businesses')
-        .insert([{ name, description }]);
+        .insert([{ 
+          name, 
+          description,
+          created_by: userId 
+        }]);
 
       if (error) throw error;
 
