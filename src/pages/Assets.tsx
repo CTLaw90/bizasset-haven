@@ -141,9 +141,27 @@ export const Assets = () => {
 
   const handleDownload = (asset: Asset) => {
     const element = document.createElement('a');
-    const file = new Blob([asset.content.brandscript!], {type: 'text/plain'});
+    let content = '';
+    let filename = '';
+
+    if (asset.type === 'brandscript') {
+      content = asset.content.brandscript!;
+      filename = `${(asset.content.answers as BrandscriptAnswers).companyName}-brandscript.txt`;
+    } else {
+      // Format business info in a readable way
+      const answers = asset.content.answers as BusinessInfoAnswers;
+      content = Object.entries(answers)
+        .map(([key, value]) => {
+          const formattedKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+          return `${formattedKey}:\n${value}\n`;
+        })
+        .join('\n');
+      filename = `business-information.txt`;
+    }
+
+    const file = new Blob([content], {type: 'text/plain'});
     element.href = URL.createObjectURL(file);
-    element.download = `${(asset.content.answers as BrandscriptAnswers).companyName}-brandscript.txt`;
+    element.download = filename;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
@@ -619,24 +637,32 @@ export const Assets = () => {
                     >
                       Delete Asset
                     </Button>
-                    {asset.type === 'brandscript' && (
-                      <div className="flex gap-2">
-                        <Button
-                          variant="secondary"
-                          onClick={() => handleCopyToClipboard(asset.content.brandscript!)}
-                        >
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copy
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          onClick={() => handleDownload(asset)}
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </Button>
-                      </div>
-                    )}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          const content = asset.type === 'brandscript' 
+                            ? asset.content.brandscript!
+                            : Object.entries(asset.content.answers as BusinessInfoAnswers)
+                                .map(([key, value]) => {
+                                  const formattedKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+                                  return `${formattedKey}:\n${value}`;
+                                })
+                                .join('\n\n');
+                          handleCopyToClipboard(content);
+                        }}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => handleDownload(asset)}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
+                    </div>
                   </div>
                 </DialogContent>
               </Dialog>
