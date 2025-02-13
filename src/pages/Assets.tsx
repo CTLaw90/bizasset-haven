@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -77,7 +78,6 @@ export const Assets = () => {
       
       if (error) throw error;
       
-      // Transform the data to match our Asset type
       return (data || []).map(item => ({
         ...item,
         content: item.content as AssetContent
@@ -90,10 +90,10 @@ export const Assets = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.SUPABASE_URL}/functions/v1/generate-brandscript`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-brandscript`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ answers }),
