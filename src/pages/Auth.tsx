@@ -31,7 +31,14 @@ export const Auth = () => {
           email,
           password,
         });
-        if (error) throw error;
+        if (error) {
+          if (error.message === "Email not confirmed") {
+            toast.error("Please confirm your email address before signing in. Check your inbox for the confirmation link.");
+          } else {
+            toast.error(error.message);
+          }
+          return;
+        }
         toast.success("Successfully signed in!");
         navigate("/businesses");
       } else {
@@ -41,7 +48,7 @@ export const Auth = () => {
         });
         if (error) throw error;
         toast.success(
-          "Successfully signed up! Please check your email for verification."
+          "Successfully signed up! Please check your email for verification. You'll need to verify your email before signing in."
         );
       }
     } catch (error: any) {
