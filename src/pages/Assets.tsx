@@ -24,6 +24,7 @@ import { useParams } from "react-router-dom";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Database } from "@/integrations/supabase/types";
 
 type BrandscriptAnswers = {
   companyName: string;
@@ -76,7 +77,12 @@ export const Assets = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as Asset[];
+      
+      // Transform the data to match our Asset type
+      return (data || []).map(item => ({
+        ...item,
+        content: item.content as AssetContent
+      })) as Asset[];
     }
   });
 
@@ -85,7 +91,7 @@ export const Assets = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('${process.env.SUPABASE_URL}/functions/v1/generate-brandscript', {
+      const response = await fetch(`${process.env.SUPABASE_URL}/functions/v1/generate-brandscript`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
@@ -253,7 +259,7 @@ export const Assets = () => {
               <CardContent>
                 <div className="prose prose-sm">
                   <pre className="whitespace-pre-wrap">
-                    {(asset.content as AssetContent).brandscript}
+                    {asset.content.brandscript}
                   </pre>
                 </div>
               </CardContent>
