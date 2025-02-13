@@ -10,16 +10,45 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement authentication
-    console.log("Authenticating with:", { email, password });
+    setLoading(true);
+
+    try {
+      if (isLogin) {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+        toast.success("Successfully signed in!");
+        navigate("/businesses");
+      } else {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (error) throw error;
+        toast.success(
+          "Successfully signed up! Please check your email for verification."
+        );
+      }
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -57,8 +86,12 @@ export const Auth = () => {
                 required
               />
             </div>
-            <Button type="submit" className="w-full">
-              {isLogin ? "Sign in" : "Sign up"}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading
+                ? "Loading..."
+                : isLogin
+                ? "Sign in"
+                : "Create account"}
             </Button>
             <Button
               type="button"
