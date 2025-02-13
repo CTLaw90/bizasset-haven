@@ -163,7 +163,7 @@ export type Database = {
     }
     Enums: {
       asset_status: "draft" | "complete"
-      asset_type: "brandscript" | "content" | "profile"
+      asset_type: "brandscript" | "content" | "profile" | "business_info"
       user_role: "manager" | "standard"
     }
     CompositeTypes: {
