@@ -594,29 +594,11 @@ export const Assets = () => {
                   </DialogHeader>
                   <div className="space-y-4">
                     {asset.type === 'brandscript' ? (
-                      <>
-                        <div className="prose prose-sm max-w-none">
-                          <pre className="whitespace-pre-wrap rounded-lg bg-muted p-4">
-                            {asset.content.brandscript}
-                          </pre>
-                        </div>
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            variant="secondary"
-                            onClick={() => handleCopyToClipboard(asset.content.brandscript!)}
-                          >
-                            <Copy className="h-4 w-4 mr-2" />
-                            Copy
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            onClick={() => handleDownload(asset)}
-                          >
-                            <Download className="h-4 w-4 mr-2" />
-                            Download
-                          </Button>
-                        </div>
-                      </>
+                      <div className="prose prose-sm max-w-none">
+                        <pre className="whitespace-pre-wrap rounded-lg bg-muted p-4">
+                          {asset.content.brandscript}
+                        </pre>
+                      </div>
                     ) : (
                       <div className="space-y-4">
                         {Object.entries(asset.content.answers as BusinessInfoAnswers).map(([key, value]) => (
@@ -633,30 +615,28 @@ export const Assets = () => {
                   <div className="flex justify-between mt-6">
                     <Button
                       variant="destructive"
-                      onClick={() => viewingAsset && handleDeleteAsset(viewingAsset)}
+                      onClick={() => handleDeleteAsset(asset)}
                     >
                       Delete Asset
                     </Button>
-                    <div className="flex gap-2">
-                      {viewingAsset?.type === 'brandscript' && (
-                        <>
-                          <Button
-                            variant="secondary"
-                            onClick={() => viewingAsset && handleCopyToClipboard(viewingAsset.content.brandscript!)}
-                          >
-                            <Copy className="h-4 w-4 mr-2" />
-                            Copy
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            onClick={() => viewingAsset && handleDownload(viewingAsset)}
-                          >
-                            <Download className="h-4 w-4 mr-2" />
-                            Download
-                          </Button>
-                        </>
-                      )}
-                    </div>
+                    {asset.type === 'brandscript' && (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          onClick={() => handleCopyToClipboard(asset.content.brandscript!)}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={() => handleDownload(asset)}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </DialogContent>
               </Dialog>
