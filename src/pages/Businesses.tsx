@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -115,6 +114,10 @@ export const Businesses = () => {
     }
   };
 
+  const navigateToAssets = (businessId: string) => {
+    navigate(`/businesses/${businessId}/assets`);
+  };
+
   return (
     <div className="space-y-8 fade-in">
       <div className="flex items-center justify-between">
@@ -189,7 +192,11 @@ export const Businesses = () => {
           </Card>
         ) : (
           businesses?.map((business) => (
-            <Card key={business.id} className="glass-card hover:shadow-xl transition-shadow">
+            <Card 
+              key={business.id} 
+              className="glass-card hover:shadow-xl transition-shadow cursor-pointer"
+              onClick={() => navigateToAssets(business.id)}
+            >
               <CardHeader>
                 <CardTitle className="text-xl">{business.name}</CardTitle>
                 <CardDescription>
