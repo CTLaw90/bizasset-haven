@@ -7,11 +7,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { useState } from "react";
+import { toast } from "sonner";
 
 // Temporary type until Supabase generates the proper one
 type Business = {
@@ -25,6 +37,10 @@ type Business = {
 }
 
 export const Businesses = () => {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+
   const { data: businesses, isLoading } = useQuery({
     queryKey: ['businesses'],
     queryFn: async () => {
@@ -38,14 +54,75 @@ export const Businesses = () => {
     }
   });
 
+  const handleCreateBusiness = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get('name') as string;
+    const description = formData.get('description') as string;
+
+    try {
+      const { error } = await supabase
+        .from('businesses')
+        .insert([{ name, description }]);
+
+      if (error) throw error;
+
+      toast.success('Business created successfully');
+      setOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['businesses'] });
+    } catch (error) {
+      console.error('Error creating business:', error);
+      toast.error('Failed to create business');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-8 fade-in">
       <div className="flex items-center justify-between">
         <h1 className="page-header">Businesses</h1>
-        <Button className="slide-in">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Business
-        </Button>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button className="slide-in">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Business
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Business</DialogTitle>
+              <DialogDescription>
+                Add a new business to your portfolio.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateBusiness} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  placeholder="Enter business name"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  placeholder="Enter business description"
+                  rows={4}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Creating...' : 'Create Business'}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
       
       <div className="relative">
