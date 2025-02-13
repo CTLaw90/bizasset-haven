@@ -404,39 +404,48 @@ export const Assets = () => {
             </DialogHeader>
             {!showAssetForm ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Button
-                  variant="outline"
+                <Card 
+                  className="cursor-pointer hover:bg-accent transition-colors"
                   onClick={() => {
                     setAssetType('brandscript');
                     setShowAssetForm(true);
                   }}
-                  className="h-32 flex flex-col gap-2 p-4 items-center text-center"
                 >
-                  <span className="text-lg font-semibold">Brandscript</span>
-                  <span className="text-sm text-muted-foreground line-clamp-2">Create a brandscript for your business</span>
-                </Button>
-                <Button
-                  variant="outline"
+                  <CardHeader className="text-center">
+                    <CardTitle>Brandscript</CardTitle>
+                    <CardDescription className="line-clamp-2">
+                      Create a brandscript for your business
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+                <Card 
+                  className="cursor-pointer hover:bg-accent transition-colors"
                   onClick={() => {
                     setAssetType('business_info');
                     setShowAssetForm(true);
                   }}
-                  className="h-32 flex flex-col gap-2 p-4 items-center text-center"
                 >
-                  <span className="text-lg font-semibold">Business Information</span>
-                  <span className="text-sm text-muted-foreground line-clamp-2">Add your business details</span>
-                </Button>
-                <Button
-                  variant="outline"
+                  <CardHeader className="text-center">
+                    <CardTitle>Business Information</CardTitle>
+                    <CardDescription className="line-clamp-2">
+                      Add your business details
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+                <Card 
+                  className="cursor-pointer hover:bg-accent transition-colors"
                   onClick={() => {
                     setAssetType('customer_personas');
                     setShowAssetForm(true);
                   }}
-                  className="h-32 flex flex-col gap-2 p-4 items-center text-center"
                 >
-                  <span className="text-lg font-semibold">Customer Personas</span>
-                  <span className="text-sm text-muted-foreground line-clamp-2">Generate detailed customer personas</span>
-                </Button>
+                  <CardHeader className="text-center">
+                    <CardTitle>Customer Personas</CardTitle>
+                    <CardDescription className="line-clamp-2">
+                      Generate detailed customer personas
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
               </div>
             ) : (
               <form onSubmit={handleCreateAsset} className="space-y-4 pr-2">
