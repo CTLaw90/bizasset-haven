@@ -285,6 +285,16 @@ export const Assets = () => {
     setAnswers(prev => ({ ...prev, [field]: value }));
   };
 
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Unknown date';
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
+    }
+  };
+
   return (
     <div className="space-y-8 fade-in">
       <div className="flex items-center justify-between">
@@ -556,7 +566,7 @@ export const Assets = () => {
                         : 'Business Details'}
                     </CardTitle>
                     <CardDescription>
-                      Created: {format(new Date(asset.created_at), 'MMM d, yyyy')}
+                      Created: {formatDate(asset.created_at)}
                     </CardDescription>
                   </div>
                   <Button
@@ -579,7 +589,7 @@ export const Assets = () => {
                       {viewingAsset?.type === 'brandscript' ? 'Brandscript' : 'Business Information'}
                     </DialogTitle>
                     <DialogDescription>
-                      Created: {format(new Date(viewingAsset?.created_at || ''), 'MMM d, yyyy')}
+                      Created: {formatDate(viewingAsset?.created_at)}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
