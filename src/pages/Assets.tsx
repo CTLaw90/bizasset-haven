@@ -444,13 +444,13 @@ export const Assets = () => {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Select Brandscript and Business Information</Label>
-                      <div className="grid gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {assets?.assets
                           .filter(a => ['brandscript', 'business_info'].includes(a.type))
                           .map((asset) => (
                             <div
                               key={asset.id}
-                              className="flex items-center space-x-2"
+                              className="flex items-start space-x-2 p-4 rounded-lg border bg-card"
                             >
                               <Checkbox
                                 id={asset.id}
@@ -462,12 +462,15 @@ export const Assets = () => {
                                     setSelectedAssets(prev => prev.filter(id => id !== asset.id));
                                   }
                                 }}
+                                className="mt-1"
                               />
-                              <Label htmlFor={asset.id} className="text-sm">
-                                {asset.type === 'brandscript' 
-                                  ? `Brandscript - ${(asset.content.answers as BrandscriptAnswers).companyName}`
-                                  : 'Business Information'}
-                                <span className="text-xs text-muted-foreground ml-2">
+                              <Label htmlFor={asset.id} className="text-sm space-y-1">
+                                <span className="font-medium block">
+                                  {asset.type === 'brandscript' 
+                                    ? `Brandscript - ${(asset.content.answers as BrandscriptAnswers).companyName}`
+                                    : 'Business Information'}
+                                </span>
+                                <span className="text-xs text-muted-foreground block">
                                   Created: {formatDate(asset.created_at)}
                                 </span>
                               </Label>
