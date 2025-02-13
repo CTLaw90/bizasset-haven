@@ -64,12 +64,13 @@ type Asset = {
 export const Assets = () => {
   const { businessId } = useParams();
   const [open, setOpen] = useState(false);
+  const [showAssetForm, setShowAssetForm] = useState(false);
   const [assetType, setAssetType] = useState<'brandscript' | 'business_info'>('brandscript');
   const [viewingAsset, setViewingAsset] = useState<Asset | null>(null);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
-  const [answers, setAnswers] = useState<BrandscriptAnswers | BusinessInfoAnswers>({
+  const [answers, setAnswers] = useState<BrandscriptAnswers>({
     companyName: "",
     productsServices: "",
     targetAudience: "",
@@ -126,6 +127,7 @@ export const Assets = () => {
       setBusinessInfoAnswers(asset.content.answers as BusinessInfoAnswers);
     }
     setOpen(true);
+    setShowAssetForm(true);
   };
 
   const handleCopyToClipboard = async (text: string) => {
@@ -147,24 +149,66 @@ export const Assets = () => {
     document.body.removeChild(element);
   };
 
+  const handleDeleteAsset = async (asset: Asset) => {
+    if (!confirm('Are you sure you want to delete this asset?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('assets')
+        .delete()
+        .eq('id', asset.id);
+
+      if (error) throw error;
+
+      toast.success('Asset deleted successfully');
+      setViewingAsset(null);
+      queryClient.invalidateQueries({ queryKey: ['assets', businessId] });
+    } catch (error: any) {
+      toast.error('Failed to delete asset');
+    }
+  };
+
   const handleCreateAsset = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       if (editingAsset) {
-        const { error: updateError } = await supabase
-          .from('assets')
-          .update({
-            content: {
-              answers: assetType === 'business_info' ? businessInfoAnswers : answers,
-              brandscript: editingAsset.content.brandscript
-            }
-          })
-          .eq('id', editingAsset.id);
+        if (editingAsset.type === 'brandscript') {
+          // Re-run OpenAI for edited brandscripts
+          const { data, error: functionError } = await supabase.functions.invoke('generate-brandscript', {
+            body: { answers }
+          });
 
-        if (updateError) throw updateError;
-        toast.success(`${assetType === 'business_info' ? 'Business Information' : 'Brandscript'} updated successfully`);
+          if (functionError) throw new Error(functionError.message);
+          
+          const { brandscript, error } = data;
+          if (error) throw new Error(error);
+
+          const { error: updateError } = await supabase
+            .from('assets')
+            .update({
+              content: {
+                answers,
+                brandscript,
+              }
+            })
+            .eq('id', editingAsset.id);
+
+          if (updateError) throw updateError;
+        } else {
+          const { error: updateError } = await supabase
+            .from('assets')
+            .update({
+              content: {
+                answers: businessInfoAnswers
+              }
+            })
+            .eq('id', editingAsset.id);
+
+          if (updateError) throw updateError;
+        }
+        toast.success(`${editingAsset.type === 'business_info' ? 'Business Information' : 'Brandscript'} updated successfully`);
       } else {
         if (assetType === 'brandscript') {
           const { data, error: functionError } = await supabase.functions.invoke('generate-brandscript', {
@@ -208,6 +252,7 @@ export const Assets = () => {
       }
 
       setOpen(false);
+      setShowAssetForm(false);
       setEditingAsset(null);
       setAnswers({
         companyName: "",
@@ -249,6 +294,7 @@ export const Assets = () => {
           if (!isOpen) {
             setEditingAsset(null);
             setAssetType('brandscript');
+            setShowAssetForm(false);
             setAnswers({
               companyName: "",
               productsServices: "",
@@ -279,177 +325,196 @@ export const Assets = () => {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                Create New Asset
+                {showAssetForm ? `Create New ${assetType === 'brandscript' ? 'Brandscript' : 'Business Information'}` : 'Create New Asset'}
               </DialogTitle>
               <DialogDescription>
-                Select an asset type to create
+                {showAssetForm ? 'Fill in the required information' : 'Select an asset type to create'}
               </DialogDescription>
             </DialogHeader>
-            {!editingAsset && (
-              <div className="flex gap-4 mb-4">
+            {!showAssetForm ? (
+              <div className="flex gap-4">
                 <Button
-                  variant={assetType === 'brandscript' ? 'default' : 'outline'}
-                  onClick={() => setAssetType('brandscript')}
-                  className="flex-1"
+                  variant="outline"
+                  onClick={() => {
+                    setAssetType('brandscript');
+                    setShowAssetForm(true);
+                  }}
+                  className="flex-1 h-24 flex flex-col gap-2"
                 >
-                  Brandscript
+                  <span className="text-lg font-semibold">Brandscript</span>
+                  <span className="text-sm text-muted-foreground">Create a brandscript for your business</span>
                 </Button>
                 <Button
-                  variant={assetType === 'business_info' ? 'default' : 'outline'}
-                  onClick={() => setAssetType('business_info')}
-                  className="flex-1"
+                  variant="outline"
+                  onClick={() => {
+                    setAssetType('business_info');
+                    setShowAssetForm(true);
+                  }}
+                  className="flex-1 h-24 flex flex-col gap-2"
                 >
-                  Business Information
+                  <span className="text-lg font-semibold">Business Information</span>
+                  <span className="text-sm text-muted-foreground">Add your business details</span>
                 </Button>
               </div>
+            ) : (
+              <form onSubmit={handleCreateAsset} className="space-y-4 pr-2">
+                {assetType === 'business_info' ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="services">What are your services?</Label>
+                      <Textarea
+                        id="services"
+                        value={businessInfoAnswers.services}
+                        onChange={(e) => setBusinessInfoAnswers(prev => ({ ...prev, services: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="excludedServices">Are there any services in your industry you DO NOT offer?</Label>
+                      <Textarea
+                        id="excludedServices"
+                        value={businessInfoAnswers.excludedServices}
+                        onChange={(e) => setBusinessInfoAnswers(prev => ({ ...prev, excludedServices: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="locations">What locations do you serve?</Label>
+                      <Textarea
+                        id="locations"
+                        value={businessInfoAnswers.locations}
+                        onChange={(e) => setBusinessInfoAnswers(prev => ({ ...prev, locations: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="excludedLocations">Are there any locations in your area you DO NOT serve?</Label>
+                      <Textarea
+                        id="excludedLocations"
+                        value={businessInfoAnswers.excludedLocations}
+                        onChange={(e) => setBusinessInfoAnswers(prev => ({ ...prev, excludedLocations: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="priorityService">What service do you want to sell the most?</Label>
+                      <Textarea
+                        id="priorityService"
+                        value={businessInfoAnswers.priorityService}
+                        onChange={(e) => setBusinessInfoAnswers(prev => ({ ...prev, priorityService: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNumber">What is your business phone number?</Label>
+                      <Input
+                        id="phoneNumber"
+                        value={businessInfoAnswers.phoneNumber}
+                        onChange={(e) => setBusinessInfoAnswers(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="address">What is your business address?</Label>
+                      <Textarea
+                        id="address"
+                        value={businessInfoAnswers.address}
+                        onChange={(e) => setBusinessInfoAnswers(prev => ({ ...prev, address: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="companyName">What is your company name?</Label>
+                      <Input
+                        id="companyName"
+                        value={(answers as BrandscriptAnswers).companyName}
+                        onChange={(e) => handleInputChange('companyName', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="productsServices">What products or services do you offer?</Label>
+                      <Textarea
+                        id="productsServices"
+                        value={(answers as BrandscriptAnswers).productsServices}
+                        onChange={(e) => handleInputChange('productsServices', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="targetAudience">Who is your target audience?</Label>
+                      <Textarea
+                        id="targetAudience"
+                        value={(answers as BrandscriptAnswers).targetAudience}
+                        onChange={(e) => handleInputChange('targetAudience', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="mainProblem">What is the main problem your customers deal with?</Label>
+                      <Textarea
+                        id="mainProblem"
+                        value={(answers as BrandscriptAnswers).mainProblem}
+                        onChange={(e) => handleInputChange('mainProblem', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="solution">What is your solution?</Label>
+                      <Textarea
+                        id="solution"
+                        value={(answers as BrandscriptAnswers).solution}
+                        onChange={(e) => handleInputChange('solution', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="differentiation">What differentiates your brand from competitors?</Label>
+                      <Textarea
+                        id="differentiation"
+                        value={(answers as BrandscriptAnswers).differentiation}
+                        onChange={(e) => handleInputChange('differentiation', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="authority">What awards, accolades, or success metrics give you authority?</Label>
+                      <Textarea
+                        id="authority"
+                        value={(answers as BrandscriptAnswers).authority}
+                        onChange={(e) => handleInputChange('authority', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="steps">What steps does a customer need to take to buy/use your product?</Label>
+                      <Textarea
+                        id="steps"
+                        value={(answers as BrandscriptAnswers).steps}
+                        onChange={(e) => handleInputChange('steps', e.target.value)}
+                        required
+                      />
+                    </div>
+                  </>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setShowAssetForm(false)}
+                  >
+                    Back
+                  </Button>
+                  <Button type="submit" className="flex-1" disabled={loading}>
+                    {loading ? 'Saving...' : 'Save Asset'}
+                  </Button>
+                </div>
+              </form>
             )}
-            <form onSubmit={handleCreateAsset} className="space-y-4 pr-2">
-              {assetType === 'business_info' ? (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="services">What are your services?</Label>
-                    <Textarea
-                      id="services"
-                      value={businessInfoAnswers.services}
-                      onChange={(e) => setBusinessInfoAnswers(prev => ({ ...prev, services: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="excludedServices">Are there any services in your industry you DO NOT offer?</Label>
-                    <Textarea
-                      id="excludedServices"
-                      value={businessInfoAnswers.excludedServices}
-                      onChange={(e) => setBusinessInfoAnswers(prev => ({ ...prev, excludedServices: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="locations">What locations do you serve?</Label>
-                    <Textarea
-                      id="locations"
-                      value={businessInfoAnswers.locations}
-                      onChange={(e) => setBusinessInfoAnswers(prev => ({ ...prev, locations: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="excludedLocations">Are there any locations in your area you DO NOT serve?</Label>
-                    <Textarea
-                      id="excludedLocations"
-                      value={businessInfoAnswers.excludedLocations}
-                      onChange={(e) => setBusinessInfoAnswers(prev => ({ ...prev, excludedLocations: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="priorityService">What service do you want to sell the most?</Label>
-                    <Textarea
-                      id="priorityService"
-                      value={businessInfoAnswers.priorityService}
-                      onChange={(e) => setBusinessInfoAnswers(prev => ({ ...prev, priorityService: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phoneNumber">What is your business phone number?</Label>
-                    <Input
-                      id="phoneNumber"
-                      value={businessInfoAnswers.phoneNumber}
-                      onChange={(e) => setBusinessInfoAnswers(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="address">What is your business address?</Label>
-                    <Textarea
-                      id="address"
-                      value={businessInfoAnswers.address}
-                      onChange={(e) => setBusinessInfoAnswers(prev => ({ ...prev, address: e.target.value }))}
-                      required
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="companyName">What is your company name?</Label>
-                    <Input
-                      id="companyName"
-                      value={(answers as BrandscriptAnswers).companyName}
-                      onChange={(e) => handleInputChange('companyName', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="productsServices">What products or services do you offer?</Label>
-                    <Textarea
-                      id="productsServices"
-                      value={(answers as BrandscriptAnswers).productsServices}
-                      onChange={(e) => handleInputChange('productsServices', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="targetAudience">Who is your target audience?</Label>
-                    <Textarea
-                      id="targetAudience"
-                      value={(answers as BrandscriptAnswers).targetAudience}
-                      onChange={(e) => handleInputChange('targetAudience', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="mainProblem">What is the main problem your customers deal with?</Label>
-                    <Textarea
-                      id="mainProblem"
-                      value={(answers as BrandscriptAnswers).mainProblem}
-                      onChange={(e) => handleInputChange('mainProblem', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="solution">What is your solution?</Label>
-                    <Textarea
-                      id="solution"
-                      value={(answers as BrandscriptAnswers).solution}
-                      onChange={(e) => handleInputChange('solution', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="differentiation">What differentiates your brand from competitors?</Label>
-                    <Textarea
-                      id="differentiation"
-                      value={(answers as BrandscriptAnswers).differentiation}
-                      onChange={(e) => handleInputChange('differentiation', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="authority">What awards, accolades, or success metrics give you authority?</Label>
-                    <Textarea
-                      id="authority"
-                      value={(answers as BrandscriptAnswers).authority}
-                      onChange={(e) => handleInputChange('authority', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="steps">What steps does a customer need to take to buy/use your product?</Label>
-                    <Textarea
-                      id="steps"
-                      value={(answers as BrandscriptAnswers).steps}
-                      onChange={(e) => handleInputChange('steps', e.target.value)}
-                      required
-                    />
-                  </div>
-                </>
-              )}
-              <Button type="submit" className="w-full mb-4" disabled={loading}>
-                {loading ? 'Saving...' : 'Save Asset'}
-              </Button>
-            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -511,10 +576,10 @@ export const Assets = () => {
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>
-                      {asset.type === 'brandscript' ? 'Brandscript' : 'Business Information'}
+                      {viewingAsset?.type === 'brandscript' ? 'Brandscript' : 'Business Information'}
                     </DialogTitle>
                     <DialogDescription>
-                      Created: {format(new Date(asset.created_at), 'MMM d, yyyy')}
+                      Created: {format(new Date(viewingAsset?.created_at || ''), 'MMM d, yyyy')}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
@@ -554,6 +619,34 @@ export const Assets = () => {
                         ))}
                       </div>
                     )}
+                  </div>
+                  <div className="flex justify-between mt-6">
+                    <Button
+                      variant="destructive"
+                      onClick={() => viewingAsset && handleDeleteAsset(viewingAsset)}
+                    >
+                      Delete Asset
+                    </Button>
+                    <div className="flex gap-2">
+                      {viewingAsset?.type === 'brandscript' && (
+                        <>
+                          <Button
+                            variant="secondary"
+                            onClick={() => viewingAsset && handleCopyToClipboard(viewingAsset.content.brandscript!)}
+                          >
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copy
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            onClick={() => viewingAsset && handleDownload(viewingAsset)}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </DialogContent>
               </Dialog>
