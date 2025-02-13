@@ -403,14 +403,14 @@ export const Assets = () => {
               </DialogDescription>
             </DialogHeader>
             {!showAssetForm ? (
-              <div className="flex gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Button
                   variant="outline"
                   onClick={() => {
                     setAssetType('brandscript');
                     setShowAssetForm(true);
                   }}
-                  className="flex-1 h-24 flex flex-col gap-2"
+                  className="h-32 flex flex-col gap-2"
                 >
                   <span className="text-lg font-semibold">Brandscript</span>
                   <span className="text-sm text-muted-foreground">Create a brandscript for your business</span>
@@ -421,7 +421,7 @@ export const Assets = () => {
                     setAssetType('business_info');
                     setShowAssetForm(true);
                   }}
-                  className="flex-1 h-24 flex flex-col gap-2"
+                  className="h-32 flex flex-col gap-2"
                 >
                   <span className="text-lg font-semibold">Business Information</span>
                   <span className="text-sm text-muted-foreground">Add your business details</span>
@@ -432,7 +432,7 @@ export const Assets = () => {
                     setAssetType('customer_personas');
                     setShowAssetForm(true);
                   }}
-                  className="flex-1 h-24 flex flex-col gap-2"
+                  className="h-32 flex flex-col gap-2"
                 >
                   <span className="text-lg font-semibold">Customer Personas</span>
                   <span className="text-sm text-muted-foreground">Generate detailed customer personas</span>
