@@ -9,7 +9,15 @@ export const ProblemStatementsDisplay = ({ statements }: ProblemStatementsDispla
   const parseStatements = () => {
     if (typeof statements === 'string') {
       try {
-        return JSON.parse(statements);
+        // Try to parse JSON string and clean up any potential quote issues
+        const parsed = JSON.parse(statements);
+        if (Array.isArray(parsed)) {
+          return parsed.map(statement => 
+            // Remove any extra quotes and clean up the statement
+            statement.replace(/^["']|["']$/g, '').replace(/\\"/g, '"')
+          );
+        }
+        return null;
       } catch (e) {
         console.error('Error parsing problem statements:', e);
         return null;

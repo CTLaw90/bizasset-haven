@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -111,7 +110,7 @@ export const Assets = () => {
     if (asset.type === 'brandscript') {
       content = asset.content.brandscript!;
       filename = `${(asset.content.answers as BrandscriptAnswers).companyName}-brandscript.txt`;
-    } else {
+    } else if (asset.type === 'business_info') {
       const answers = asset.content.answers as BusinessInfoAnswers;
       content = Object.entries(answers)
         .map(([key, value]) => {
@@ -120,6 +119,15 @@ export const Assets = () => {
         })
         .join('\n');
       filename = `business-information.txt`;
+    } else if (asset.type === 'customer_personas') {
+      content = asset.content.personas || '';
+      filename = 'customer-personas.txt';
+    } else if (asset.type === 'problem_statements') {
+      const statements = Array.isArray(asset.content.problem_statements) 
+        ? asset.content.problem_statements 
+        : [];
+      content = statements.map((statement, index) => `${index + 1}. ${statement}`).join('\n\n');
+      filename = 'problem-statements.txt';
     }
 
     const file = new Blob([content], {type: 'text/plain'});
@@ -437,17 +445,30 @@ export const Assets = () => {
                     : 'Problem Statements'}
                 </DialogTitle>
                 <div className="flex justify-end gap-2">
-                  {asset.type === 'brandscript' && (
+                  {(asset.type === 'brandscript' || 
+                    asset.type === 'customer_personas' || 
+                    asset.type === 'problem_statements') && (
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleCopyToClipboard(asset.content.brandscript || '')}
+                      onClick={() => handleCopyToClipboard(
+                        asset.type === 'brandscript' 
+                          ? asset.content.brandscript || ''
+                          : asset.type === 'customer_personas'
+                          ? asset.content.personas || ''
+                          : Array.isArray(asset.content.problem_statements)
+                          ? asset.content.problem_statements.map((s, i) => `${i + 1}. ${s}`).join('\n\n')
+                          : ''
+                      )}
                     >
                       <Copy className="w-4 h-4 mr-2" />
                       Copy
                     </Button>
                   )}
-                  {(asset.type === 'brandscript' || asset.type === 'business_info') && (
+                  {(asset.type === 'brandscript' || 
+                    asset.type === 'business_info' || 
+                    asset.type === 'customer_personas' || 
+                    asset.type === 'problem_statements') && (
                     <Button
                       variant="outline"
                       size="sm"
