@@ -39,7 +39,7 @@ export const ProblemStatementsDisplay = ({ statements }: ProblemStatementsDispla
       {parsedStatements.map((statement, index) => (
         <Card key={index} className="bg-muted/50">
           <CardContent className="p-4">
-            <p className="text-base">
+            <p className="text-base whitespace-pre-wrap">
               {index + 1}. {statement}
             </p>
           </CardContent>
