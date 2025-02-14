@@ -57,13 +57,14 @@ type AssetContent = {
   answers: BrandscriptAnswers | BusinessInfoAnswers;
   brandscript?: string;
   personas?: string;
+  problem_statements?: string[];
   referenced_assets?: string[];
 };
 
 type Asset = {
   id: string;
   business_id: string;
-  type: 'brandscript' | 'business_info' | 'customer_personas';
+  type: 'brandscript' | 'business_info' | 'customer_personas' | 'problem_statements';
   status: 'draft' | 'complete';
   content: AssetContent;
   created_at: string;
@@ -74,7 +75,7 @@ export const Assets = () => {
   const { businessId } = useParams();
   const [open, setOpen] = useState(false);
   const [showAssetForm, setShowAssetForm] = useState(false);
-  const [assetType, setAssetType] = useState<'brandscript' | 'business_info' | 'customer_personas'>('brandscript');
+  const [assetType, setAssetType] = useState<'brandscript' | 'business_info' | 'customer_personas' | 'problem_statements'>('brandscript');
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [viewingAsset, setViewingAsset] = useState<Asset | null>(null);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
@@ -308,6 +309,42 @@ export const Assets = () => {
 
           if (insertError) throw insertError;
           toast.success('Customer Personas created successfully');
+        } else if (assetType === 'problem_statements') {
+          const selectedAssetsData = assets?.assets.filter(a => selectedAssets.includes(a.id)) || [];
+          const brandscript = selectedAssetsData.find(a => a.type === 'brandscript')?.content.brandscript || '';
+          const personas = selectedAssetsData.find(a => a.type === 'customer_personas')?.content.personas || '';
+
+          if (!brandscript) {
+            throw new Error('A brandscript is required to generate problem statements');
+          }
+
+          const { data: functionData, error: functionError } = await supabase.functions.invoke('generate-problem-statements', {
+            body: { 
+              brandscript,
+              personas
+            }
+          });
+
+          if (functionError) throw new Error(functionError.message);
+          
+          const { problem_statements, error } = functionData;
+          if (error) throw new Error(error);
+
+          const { error: insertError } = await supabase
+            .from('assets')
+            .insert([{
+              business_id: businessId,
+              type: 'problem_statements',
+              status: 'complete',
+              content: {
+                problem_statements,
+                referenced_assets: selectedAssets
+              },
+              referenced_assets: selectedAssets
+            }]);
+
+          if (insertError) throw insertError;
+          toast.success('Problem Statements created successfully');
         }
       }
 
@@ -446,16 +483,32 @@ export const Assets = () => {
                     </CardDescription>
                   </CardHeader>
                 </Card>
+              <Card 
+                className="cursor-pointer hover:bg-accent transition-colors"
+                onClick={() => {
+                  setAssetType('problem_statements');
+                  setShowAssetForm(true);
+                }}
+              >
+                <CardHeader className="text-center">
+                  <CardTitle>Problem Statements</CardTitle>
+                  <CardDescription className="line-clamp-2">
+                    Generate problem statements based on brandscript and personas
+                  </CardDescription>
+                </CardHeader>
+              </Card>
               </div>
             ) : (
               <form onSubmit={handleCreateAsset} className="space-y-4 pr-2">
-                {assetType === 'customer_personas' ? (
+                {assetType === 'customer_personas' || assetType === 'problem_statements' ? (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Select Brandscript and Business Information</Label>
+                      <Label>Select {assetType === 'problem_statements' ? 'Brandscript and Optional Customer Personas' : 'Brandscript and Business Information'}</Label>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {assets?.assets
-                          .filter(a => ['brandscript', 'business_info'].includes(a.type))
+                          .filter(a => assetType === 'problem_statements' 
+                            ? ['brandscript', 'customer_personas'].includes(a.type)
+                            : ['brandscript', 'business_info'].includes(a.type))
                           .map((asset) => (
                             <div
                               key={asset.id}
@@ -477,6 +530,8 @@ export const Assets = () => {
                                 <span className="font-medium block">
                                   {asset.type === 'brandscript' 
                                     ? `Brandscript - ${(asset.content.answers as BrandscriptAnswers).companyName}`
+                                    : asset.type === 'customer_personas'
+                                    ? 'Customer Personas'
                                     : 'Business Information'}
                                 </span>
                                 <span className="text-xs text-muted-foreground block">
@@ -705,7 +760,7 @@ export const Assets = () => {
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>
-                      {viewingAsset?.type === 'brandscript' ? 'Brandscript' : viewingAsset?.type === 'business_info' ? 'Business Information' : 'Customer Personas'}
+                      {viewingAsset?.type === 'brandscript' ? 'Brandscript' : viewingAsset?.type === 'business_info' ? 'Business Information' : viewingAsset?.type === 'customer_personas' ? 'Customer Personas' : 'Problem Statements'}
                     </DialogTitle>
                     <DialogDescription>
                       Created: {formatDate(viewingAsset?.created_at)}
@@ -735,7 +790,7 @@ export const Assets = () => {
                           </Card>
                         ))}
                       </div>
-                    ) : (
+                    ) : asset.type === 'customer_personas' ? (
                       <div className="space-y-4">
                         {asset.content.personas?.split('### Persona').filter(Boolean).map((persona, index) => {
                           const sections = persona.match(/\*\*(.*?)\*\*\s*([^*]+)/g) || [];
@@ -770,6 +825,18 @@ export const Assets = () => {
                             </Card>
                           );
                         })}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {asset.content.problem_statements?.map((statement, index) => (
+                          <Card key={index} className="bg-muted/50">
+                            <CardHeader>
+                              <CardDescription className="text-sm">
+                                {statement}
+                              </CardDescription>
+                            </CardHeader>
+                          </Card>
+                        ))}
                       </div>
                     )}
                   </div>
