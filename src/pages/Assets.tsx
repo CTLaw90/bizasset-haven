@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Card } from "@/components/ui/card"; // Added Card import
 import { supabase } from "@/integrations/supabase/client";
 import { Copy, Download, Edit, Plus } from "lucide-react";
 import { useParams } from "react-router-dom";
@@ -15,7 +16,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Asset, BrandscriptAnswers, BusinessInfoAnswers } from "@/types/assets";
+import { Asset, BrandscriptAnswers, BusinessInfoAnswers, AssetContent } from "@/types/assets"; // Added AssetContent import
 import { BrandscriptDisplay } from "@/components/assets/BrandscriptDisplay";
 import { BusinessInfoDisplay } from "@/components/assets/BusinessInfoDisplay";
 import { CustomerPersonasDisplay } from "@/components/assets/CustomerPersonasDisplay";
