@@ -40,7 +40,7 @@ export const ProblemStatementsDisplay = ({ statements }: ProblemStatementsDispla
         <Card key={index} className="bg-muted/50">
           <CardContent className="p-4">
             <p className="text-base whitespace-pre-wrap">
-              {index + 1}. {statement}
+              {statement.replace(/^\d+\.\s*/, '')} {/* Remove any existing numbering */}
             </p>
           </CardContent>
         </Card>
