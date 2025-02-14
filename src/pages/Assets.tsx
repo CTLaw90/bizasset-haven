@@ -123,10 +123,8 @@ export const Assets = () => {
       content = asset.content.personas || '';
       filename = 'customer-personas.txt';
     } else if (asset.type === 'problem_statements') {
-      const statements = Array.isArray(asset.content.problem_statements) 
-        ? asset.content.problem_statements 
-        : [];
-      content = statements.map((statement, index) => `${index + 1}. ${statement}`).join('\n\n');
+      const statements = formatProblemStatements(asset.content.problem_statements);
+      content = statements.map((statement, index) => `${index + 1}. ${statement}`).join('\n');
       filename = 'problem-statements.txt';
     }
 
@@ -356,6 +354,21 @@ export const Assets = () => {
     }
   };
 
+  const formatProblemStatements = (statements: string[] | string | undefined): string[] => {
+    if (!statements) return [];
+    
+    if (typeof statements === 'string') {
+      try {
+        return JSON.parse(statements);
+      } catch (e) {
+        console.error('Error parsing problem statements:', e);
+        return [];
+      }
+    }
+    
+    return statements;
+  };
+
   return (
     <div className="container py-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -456,9 +469,9 @@ export const Assets = () => {
                           ? asset.content.brandscript || ''
                           : asset.type === 'customer_personas'
                           ? asset.content.personas || ''
-                          : Array.isArray(asset.content.problem_statements)
-                          ? asset.content.problem_statements.map((s, i) => `${i + 1}. ${s}`).join('\n\n')
-                          : ''
+                          : formatProblemStatements(asset.content.problem_statements)
+                              .map((s, i) => `${i + 1}. ${s}`)
+                              .join('\n')
                       )}
                     >
                       <Copy className="w-4 h-4 mr-2" />
