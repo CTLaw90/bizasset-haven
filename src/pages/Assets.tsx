@@ -341,3 +341,160 @@ export const Assets = () => {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Unknown date';
     try {
+      return format(new Date(dateString), 'MMM d, yyyy');
+    } catch (error) {
+      return 'Invalid date';
+    }
+  };
+
+  return (
+    <div className="container py-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Assets</h1>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              New Asset
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Create New Asset</DialogTitle>
+              <DialogDescription>
+                Create a new asset for your business
+              </DialogDescription>
+            </DialogHeader>
+            {showAssetForm ? (
+              <AssetForm
+                assetType={assetType}
+                loading={loading}
+                assets={assets?.assets}
+                selectedAssets={selectedAssets}
+                setSelectedAssets={setSelectedAssets}
+                answers={answers}
+                businessInfoAnswers={businessInfoAnswers}
+                handleInputChange={handleInputChange}
+                setBusinessInfoAnswers={setBusinessInfoAnswers}
+                onBack={() => setShowAssetForm(false)}
+                onSubmit={handleCreateAsset}
+                formatDate={formatDate}
+              />
+            ) : (
+              <AssetTypeSelector onSelect={(type) => {
+                setAssetType(type);
+                setShowAssetForm(true);
+              }} />
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {assets?.assets.map((asset) => (
+          <Dialog key={asset.id}>
+            <DialogTrigger asChild>
+              <Card className="cursor-pointer hover:bg-accent transition-colors">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="font-medium">
+                      {asset.type === 'brandscript' 
+                        ? `Brandscript - ${(asset.content.answers as BrandscriptAnswers).companyName}`
+                        : asset.type === 'business_info'
+                        ? 'Business Information'
+                        : asset.type === 'customer_personas'
+                        ? 'Customer Personas'
+                        : 'Problem Statements'}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {formatDate(asset.created_at)}
+                    </div>
+                  </div>
+                  <div className="text-sm text-muted-foreground line-clamp-3">
+                    {asset.type === 'brandscript' 
+                      ? asset.content.brandscript?.slice(0, 150) + '...'
+                      : asset.type === 'business_info'
+                      ? `Services: ${(asset.content.answers as BusinessInfoAnswers).services.slice(0, 150)}...`
+                      : asset.type === 'customer_personas'
+                      ? asset.content.personas?.slice(0, 150) + '...'
+                      : Array.isArray(asset.content.problem_statements) 
+                        ? asset.content.problem_statements[0]
+                        : 'No content available'}
+                  </div>
+                </div>
+              </Card>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {asset.type === 'brandscript' 
+                    ? `Brandscript - ${(asset.content.answers as BrandscriptAnswers).companyName}`
+                    : asset.type === 'business_info'
+                    ? 'Business Information'
+                    : asset.type === 'customer_personas'
+                    ? 'Customer Personas'
+                    : 'Problem Statements'}
+                </DialogTitle>
+                <div className="flex justify-end gap-2">
+                  {asset.type === 'brandscript' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopyToClipboard(asset.content.brandscript || '')}
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy
+                    </Button>
+                  )}
+                  {(asset.type === 'brandscript' || asset.type === 'business_info') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDownload(asset)}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </Button>
+                  )}
+                  {(asset.type === 'brandscript' || asset.type === 'business_info') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditAsset(asset)}
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                  )}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteAsset(asset)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </DialogHeader>
+
+              {asset.type === 'brandscript' && asset.content.brandscript && (
+                <BrandscriptDisplay content={asset.content.brandscript} />
+              )}
+
+              {asset.type === 'business_info' && (
+                <BusinessInfoDisplay answers={asset.content.answers as BusinessInfoAnswers} />
+              )}
+
+              {asset.type === 'customer_personas' && asset.content.personas && (
+                <CustomerPersonasDisplay personas={asset.content.personas} />
+              )}
+
+              {asset.type === 'problem_statements' && (
+                <ProblemStatementsDisplay statements={asset.content.problem_statements || []} />
+              )}
+            </DialogContent>
+          </Dialog>
+        ))}
+      </div>
+    </div>
+  );
+};
