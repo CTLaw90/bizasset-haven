@@ -172,7 +172,6 @@ export type Database = {
         | "profile"
         | "business_info"
         | "customer_personas"
-        | "problem_statements"
       user_role: "manager" | "standard"
     }
     CompositeTypes: {
