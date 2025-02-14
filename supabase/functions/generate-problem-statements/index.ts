@@ -83,15 +83,23 @@ Format your response as a simple array of strings, with each string being a prob
     let problem_statements: string[];
     
     try {
-      // Clean up the response by removing JSON formatting artifacts
+      // Clean up the response by removing all JSON formatting artifacts
       const content = data.choices[0].message.content;
       const cleanedContent = content
-        .replace(/^```json\s*\[\s*/g, '') // Remove opening ```json and [
-        .replace(/\s*\]\s*```$/g, '')     // Remove closing ] and ```
-        .trim();
-      
-      // Parse the cleaned content
-      problem_statements = JSON.parse(`[${cleanedContent}]`);
+        .replace(/^```json\s*/, '')    // Remove opening ```json
+        .replace(/```$/g, '')          // Remove closing ```
+        .replace(/^\s*\[\s*/, '')      // Remove opening [
+        .replace(/\s*\]\s*$/, '')      // Remove closing ]
+        .trim()
+        .split(',\n')                  // Split into array by commas followed by newlines
+        .map(line => line
+          .trim()                      // Trim whitespace
+          .replace(/^["']|["']$/g, '') // Remove quotes
+          .replace(/,$/g, '')          // Remove trailing commas
+        )
+        .filter(line => line);         // Remove empty lines
+
+      problem_statements = cleanedContent;
     } catch (error) {
       console.error('Error parsing OpenAI response:', error);
       // If parsing fails, try to extract statements from the text response
