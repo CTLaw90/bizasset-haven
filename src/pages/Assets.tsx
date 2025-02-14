@@ -330,6 +330,11 @@ export const Assets = () => {
           const { problem_statements, error } = functionData;
           if (error) throw new Error(error);
 
+          // Parse the problem statements if they're a string
+          const parsedProblemStatements = typeof problem_statements === 'string' 
+            ? JSON.parse(problem_statements) 
+            : problem_statements;
+
           const { error: insertError } = await supabase
             .from('assets')
             .insert([{
@@ -337,7 +342,7 @@ export const Assets = () => {
               type: 'problem_statements',
               status: 'complete',
               content: {
-                problem_statements,
+                problem_statements: parsedProblemStatements,
                 referenced_assets: selectedAssets
               },
               referenced_assets: selectedAssets
@@ -834,25 +839,39 @@ export const Assets = () => {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {Array.isArray(asset.content.problem_statements) ? 
-                          asset.content.problem_statements.map((statement, index) => (
-                            <Card key={index} className="bg-muted/50">
-                              <CardContent className="p-4">
-                                <p className="text-sm">
-                                  {index + 1}. {statement}
-                                </p>
-                              </CardContent>
-                            </Card>
-                          )) : (
-                            <Card className="bg-muted/50">
-                              <CardContent className="p-4">
-                                <p className="text-sm text-muted-foreground">
-                                  No problem statements available
-                                </p>
-                              </CardContent>
-                            </Card>
-                          )
-                        }
+                        {(() => {
+                          // Parse the problem statements if they're a string
+                          let statements = asset.content.problem_statements;
+                          if (typeof statements === 'string') {
+                            try {
+                              statements = JSON.parse(statements);
+                            } catch (e) {
+                              console.error('Error parsing problem statements:', e);
+                            }
+                          }
+
+                          if (Array.isArray(statements)) {
+                            return statements.map((statement, index) => (
+                              <Card key={index} className="bg-muted/50">
+                                <CardContent className="p-4">
+                                  <p className="text-base">
+                                    {index + 1}. {statement}
+                                  </p>
+                                </CardContent>
+                              </Card>
+                            ));
+                          } else {
+                            return (
+                              <Card className="bg-muted/50">
+                                <CardContent className="p-4">
+                                  <p className="text-sm text-muted-foreground">
+                                    No problem statements available
+                                  </p>
+                                </CardContent>
+                              </Card>
+                            );
+                          }
+                        })()}
                       </div>
                     )}
                   </div>
