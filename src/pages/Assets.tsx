@@ -837,8 +837,8 @@ export const Assets = () => {
                         {asset.content.problem_statements?.map((statement, index) => (
                           <Card key={index} className="bg-muted/50">
                             <CardHeader>
-                              <CardDescription className="text-sm">
-                                {statement}
+                              <CardDescription className="text-base">
+                                {index + 1}. {statement}
                               </CardDescription>
                             </CardHeader>
                           </Card>
@@ -867,6 +867,8 @@ export const Assets = () => {
                                 return `${formattedKey}:\n${value}`;
                               })
                               .join('\n\n');
+                          } else if (asset.type === 'problem_statements') {
+                            content = asset.content.problem_statements?.join('\n') || '';
                           } else {
                             content = asset.content.personas!;
                           }
