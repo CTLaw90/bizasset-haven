@@ -62,7 +62,7 @@ Special Instructions:
 - Balance rational and emotional appeals
 - Ensure statements naturally lead to the solution offered in the brandscript
 
-Format your response as a JSON array of strings, with each string being a problem statement.`;
+Format your response as a simple array of strings, with each string being a problem statement. DO NOT include any JSON formatting marks like quotes around the array itself or 'json' keyword. Just provide the clean array.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -83,7 +83,15 @@ Format your response as a JSON array of strings, with each string being a proble
     let problem_statements: string[];
     
     try {
-      problem_statements = JSON.parse(data.choices[0].message.content);
+      // Clean up the response by removing JSON formatting artifacts
+      const content = data.choices[0].message.content;
+      const cleanedContent = content
+        .replace(/^```json\s*\[\s*/g, '') // Remove opening ```json and [
+        .replace(/\s*\]\s*```$/g, '')     // Remove closing ] and ```
+        .trim();
+      
+      // Parse the cleaned content
+      problem_statements = JSON.parse(`[${cleanedContent}]`);
     } catch (error) {
       console.error('Error parsing OpenAI response:', error);
       // If parsing fails, try to extract statements from the text response
