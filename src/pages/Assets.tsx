@@ -57,13 +57,14 @@ type AssetContent = {
   answers: BrandscriptAnswers | BusinessInfoAnswers;
   brandscript?: string;
   personas?: string;
+  problem_statements?: string[];
   referenced_assets?: string[];
 };
 
 type Asset = {
   id: string;
   business_id: string;
-  type: 'brandscript' | 'business_info' | 'customer_personas';
+  type: 'brandscript' | 'business_info' | 'customer_personas' | 'problem_statements';
   status: 'draft' | 'complete';
   content: AssetContent;
   created_at: string;
@@ -74,7 +75,7 @@ export const Assets = () => {
   const { businessId } = useParams();
   const [open, setOpen] = useState(false);
   const [showAssetForm, setShowAssetForm] = useState(false);
-  const [assetType, setAssetType] = useState<'brandscript' | 'business_info' | 'customer_personas'>('brandscript');
+  const [assetType, setAssetType] = useState<'brandscript' | 'business_info' | 'customer_personas' | 'problem_statements'>('brandscript');
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [viewingAsset, setViewingAsset] = useState<Asset | null>(null);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
@@ -308,6 +309,38 @@ export const Assets = () => {
 
           if (insertError) throw insertError;
           toast.success('Customer Personas created successfully');
+        } else if (assetType === 'problem_statements') {
+          const selectedAssetsData = assets?.assets.filter(a => selectedAssets.includes(a.id)) || [];
+          const brandscript = selectedAssetsData.find(a => a.type === 'brandscript')?.content.brandscript || '';
+          const personas = selectedAssetsData.find(a => a.type === 'customer_personas')?.content.personas || '';
+
+          const { data: functionData, error: functionError } = await supabase.functions.invoke('generate-problem-statements', {
+            body: { 
+              brandscript,
+              personas
+            }
+          });
+
+          if (functionError) throw new Error(functionError.message);
+          
+          const { problem_statements, error } = functionData;
+          if (error) throw new Error(error);
+
+          const { error: insertError } = await supabase
+            .from('assets')
+            .insert([{
+              business_id: businessId,
+              type: 'problem_statements',
+              status: 'complete',
+              content: {
+                problem_statements,
+                referenced_assets: selectedAssets
+              },
+              referenced_assets: selectedAssets
+            }]);
+
+          if (insertError) throw insertError;
+          toast.success('Problem Statements created successfully');
         }
       }
 
@@ -396,7 +429,7 @@ export const Assets = () => {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {showAssetForm ? `Create New ${assetType === 'brandscript' ? 'Brandscript' : assetType === 'business_info' ? 'Business Information' : 'Customer Personas'}` : 'Create New Asset'}
+                {showAssetForm ? `Create New ${assetType === 'brandscript' ? 'Brandscript' : assetType === 'business_info' ? 'Business Information' : 'Customer Personas' : 'Problem Statements'}` : 'Create New Asset'}
               </DialogTitle>
               <DialogDescription>
                 {showAssetForm ? 'Fill in the required information' : 'Select an asset type to create'}
@@ -446,6 +479,20 @@ export const Assets = () => {
                     </CardDescription>
                   </CardHeader>
                 </Card>
+              <Card 
+                className="cursor-pointer hover:bg-accent transition-colors"
+                onClick={() => {
+                  setAssetType('problem_statements');
+                  setShowAssetForm(true);
+                }}
+              >
+                <CardHeader className="text-center">
+                  <CardTitle>Problem Statements</CardTitle>
+                  <CardDescription className="line-clamp-2">
+                    Generate problem statements based on brandscript and personas
+                  </CardDescription>
+                </CardHeader>
+              </Card>
               </div>
             ) : (
               <form onSubmit={handleCreateAsset} className="space-y-4 pr-2">
@@ -554,7 +601,7 @@ export const Assets = () => {
                       />
                     </div>
                   </>
-                ) : (
+                ) : assetType === 'brandscript' ? (
                   <>
                     <div className="space-y-2">
                       <Label htmlFor="companyName">What is your company name?</Label>
@@ -629,6 +676,45 @@ export const Assets = () => {
                       />
                     </div>
                   </>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Select Brandscript and Customer Personas</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {assets?.assets
+                          .filter(a => ['brandscript', 'customer_personas'].includes(a.type))
+                          .map((asset) => (
+                            <div
+                              key={asset.id}
+                              className="flex items-start space-x-2 p-4 rounded-lg border bg-card"
+                            >
+                              <Checkbox
+                                id={asset.id}
+                                checked={selectedAssets.includes(asset.id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedAssets(prev => [...prev, asset.id]);
+                                  } else {
+                                    setSelectedAssets(prev => prev.filter(id => id !== asset.id));
+                                  }
+                                }}
+                                className="mt-1"
+                              />
+                              <Label htmlFor={asset.id} className="text-sm space-y-1">
+                                <span className="font-medium block">
+                                  {asset.type === 'brandscript' 
+                                    ? `Brandscript - ${(asset.content.answers as BrandscriptAnswers).companyName}`
+                                    : 'Customer Personas'}
+                                </span>
+                                <span className="text-xs text-muted-foreground block">
+                                  Created: {formatDate(asset.created_at)}
+                                </span>
+                              </Label>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
                 )}
                 <div className="flex gap-2">
                   <Button
@@ -682,7 +768,13 @@ export const Assets = () => {
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
                     <CardDescription className="text-sm font-medium text-primary mb-1">
-                      {asset.type === 'brandscript' ? 'Brandscript' : asset.type === 'business_info' ? 'Business Information' : 'Customer Personas'}
+                      {asset.type === 'brandscript' 
+                        ? 'Brandscript' 
+                        : asset.type === 'business_info' 
+                        ? 'Business Information' 
+                        : asset.type === 'customer_personas'
+                        ? 'Customer Personas'
+                        : 'Problem Statements'}
                     </CardDescription>
                     <CardDescription>
                       Created: {formatDate(asset.created_at)}
@@ -705,7 +797,7 @@ export const Assets = () => {
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>
-                      {viewingAsset?.type === 'brandscript' ? 'Brandscript' : viewingAsset?.type === 'business_info' ? 'Business Information' : 'Customer Personas'}
+                      {viewingAsset?.type === 'brandscript' ? 'Brandscript' : viewingAsset?.type === 'business_info' ? 'Business Information' : viewingAsset?.type === 'customer_personas' ? 'Customer Personas' : 'Problem Statements'}
                     </DialogTitle>
                     <DialogDescription>
                       Created: {formatDate(viewingAsset?.created_at)}
@@ -735,7 +827,7 @@ export const Assets = () => {
                           </Card>
                         ))}
                       </div>
-                    ) : (
+                    ) : asset.type === 'customer_personas' ? (
                       <div className="space-y-4">
                         {asset.content.personas?.split('### Persona').filter(Boolean).map((persona, index) => {
                           const sections = persona.match(/\*\*(.*?)\*\*\s*([^*]+)/g) || [];
@@ -770,6 +862,18 @@ export const Assets = () => {
                             </Card>
                           );
                         })}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {asset.content.problem_statements?.map((statement, index) => (
+                          <Card key={index} className="bg-muted/50">
+                            <CardHeader>
+                              <CardDescription className="text-sm">
+                                {statement}
+                              </CardDescription>
+                            </CardHeader>
+                          </Card>
+                        ))}
                       </div>
                     )}
                   </div>
