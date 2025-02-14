@@ -737,7 +737,10 @@ export const Assets = () => {
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
                     <CardDescription className="text-sm font-medium text-primary mb-1">
-                      {asset.type === 'brandscript' ? 'Brandscript' : asset.type === 'business_info' ? 'Business Information' : 'Customer Personas'}
+                      {asset.type === 'brandscript' ? 'Brandscript' 
+                        : asset.type === 'business_info' ? 'Business Information'
+                        : asset.type === 'problem_statements' ? 'Problem Statements'
+                        : 'Customer Personas'}
                     </CardDescription>
                     <CardDescription>
                       Created: {formatDate(asset.created_at)}
@@ -760,7 +763,10 @@ export const Assets = () => {
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>
-                      {viewingAsset?.type === 'brandscript' ? 'Brandscript' : viewingAsset?.type === 'business_info' ? 'Business Information' : viewingAsset?.type === 'customer_personas' ? 'Customer Personas' : 'Problem Statements'}
+                      {viewingAsset?.type === 'brandscript' ? 'Brandscript'
+                        : viewingAsset?.type === 'business_info' ? 'Business Information'
+                        : viewingAsset?.type === 'problem_statements' ? 'Problem Statements'
+                        : 'Customer Personas'}
                     </DialogTitle>
                     <DialogDescription>
                       Created: {formatDate(viewingAsset?.created_at)}
