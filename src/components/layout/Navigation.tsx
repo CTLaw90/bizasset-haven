@@ -10,11 +10,6 @@ const navItems = [
     href: "/businesses",
   },
   {
-    title: "Assets",
-    icon: GitGraph,
-    href: "/assets",
-  },
-  {
     title: "Settings",
     icon: Settings,
     href: "/settings",
